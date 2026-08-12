@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  name          String
+  email         String   @unique
+  password_hash String
+  role          String   @default("SALES") // ADMIN, SALES, WAREHOUSE, ACCOUNTS
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  customer_followups CustomerFollowup[]
+  stock_movements    StockMovement[]
+  challans           Challan[]
+}
+
+model Customer {
+  id             String         @id @default(uuid())
+  name           String
+  mobile         String
+  email          String?
+  business_name  String?
+  gst_number     String?
+  customer_type  String         // RETAIL, WHOLESALE, DISTRIBUTOR
+  address        String?
+  status         String         @default("ACTIVE") // LEAD, ACTIVE, INACTIVE
+  follow_up_date DateTime?
+  notes          String?
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+
+  followups CustomerFollowup[]
+  challans  Challan[]
+}
+
+model CustomerFollowup {
+  id             String    @id @default(uuid())
+  customer_id    String
+  customer       Customer  @relation(fields: [customer_id], references: [id])
+  note           String
+  follow_up_date DateTime?
+  created_by     String
+  creator        User      @relation(fields: [created_by], references: [id])
+  created_at     DateTime  @default(now())
+}
+
+model Product {
+  id                 String   @id @default(uuid())
+  name               String
+  sku                String   @unique
+  category           String?
+  unit_price         Float
+  current_stock      Int      @default(0)
+  minimum_stock      Int      @default(0)
+  warehouse_location String?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  stock_movements StockMovement[]
+}
+
+model StockMovement {
+  id            String       @id @default(uuid())
+  product_id    String
+  product       Product      @relation(fields: [product_id], references: [id])
+  quantity      Int
+  movement_type String       // IN, OUT
+  reason        String
+  created_by    String
+  creator       User         @relation(fields: [created_by], references: [id])
+  created_at    DateTime     @default(now())
+}
+
+model Challan {
+  id             String        @id @default(uuid())
+  challan_number String        @unique
+  customer_id    String
+  customer       Customer      @relation(fields: [customer_id], references: [id])
+  total_quantity Int           @default(0)
+  status         String        @default("DRAFT") // DRAFT, CONFIRMED, CANCELLED
+  created_by     String
+  creator        User          @relation(fields: [created_by], references: [id])
+  created_at     DateTime      @default(now())
+  updated_at     DateTime      @updatedAt
+
+  items ChallanItem[]
+}
+
+model ChallanItem {
+  id           String  @id @default(uuid())
+  challan_id   String
+  challan      Challan @relation(fields: [challan_id], references: [id])
+  product_id   String
+  product_name String
+  sku          String
+  unit_price   Float
+  quantity     Int
+  total        Float
+}
